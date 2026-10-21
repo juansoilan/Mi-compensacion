@@ -22,6 +22,14 @@ have open in the browser.
 - Remembers the last schedule you submitted as the default
 - Uses the portal session already open — **does not store your password**
 
+## Requirements
+
+- A recent **Chromium-based** browser: Google Chrome or Microsoft Edge
+- An active sign-in on [micompensacion.com](https://micompensacion.com) in a
+  normal browser tab (SSO completed)
+- Permission to load an **unpacked** extension (Developer mode). Managed /
+  corporate Edge often blocks this — see the Edge section below
+
 ## Download
 
 Get a local copy of the repo (pick one):
@@ -92,6 +100,19 @@ Do **not** try to bypass corporate security controls. If policy blocks it, use
 Chrome on a device/profile where you are allowed to load unpacked extensions,
 or do not install it.
 
+## How to update
+
+1. Update the files on disk:
+   - **Git:** from the repo folder run `git pull`
+   - **ZIP:** download a fresh ZIP from GitHub, unpack it, and replace the old
+     folder (or load the new folder and remove the old extension entry)
+2. Open `chrome://extensions` or `edge://extensions`.
+3. Find this extension and click **Reload**.
+4. Open the side panel again and refresh the month.
+
+If Reload is missing, remove the extension and use **Load unpacked** on the
+updated folder.
+
 ## Usage
 
 1. Sign in to [micompensacion.com](https://micompensacion.com) in a normal tab
@@ -103,6 +124,45 @@ or do not install it.
 
 The extension talks to the portal from your browser using your existing session
 cookies. The last successful schedule becomes the default for the next run.
+
+## Troubleshooting
+
+### I do not see the month / calendar stays empty
+
+- Sign in to micompensacion.com in a normal tab first, then open the side panel.
+- Click the **Refresh** button in the panel header.
+- Make sure the portal tab finished loading (timesheet / “Mis registros”, not
+  only the SSO login page).
+- Confirm the month and year selectors match the month you expect.
+- Reload the extension on `chrome://extensions` / `edge://extensions`, then
+  refresh again.
+
+### No portal tab found
+
+- Keep at least one tab open on `https://micompensacion.com` (or a
+  `*.micompensacion.com` page) in the **same browser profile** as the
+  extension.
+- Do not rely on a tab that only shows `saml.micompensacion.com` after a failed
+  or incomplete login — complete SSO until the portal UI is visible.
+- If you closed every portal tab, open the portal again and click Refresh.
+
+### Session expired
+
+- The extension reuses your browser SSO cookies; it does not store a password.
+- If submissions fail or the panel looks offline, sign in again on the portal
+  tab, wait until the page is fully loaded, then Refresh the side panel.
+- Opening the portal in a private window or a different profile will not share
+  the session with the extension.
+
+### “Load unpacked” does not appear / Developer mode is locked
+
+- Turn on **Developer mode** on the extensions page. If the toggle is missing
+  or resets itself, the browser is likely **managed by your organization**.
+- On managed Edge, unsigned / unpacked extensions are often blocked. See
+  [Edge managed by your company](#edge-managed-by-your-company-common-blocker)
+  above.
+- Try a non-managed Chrome or Edge profile where you are allowed to load
+  developer extensions. Do not bypass corporate policy.
 
 ## Permissions
 
