@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Registro horario · octubre 2026 (ejemplo)</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        background: #f4f1ec;
+        color: #1c2430;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        background: #fffcf8;
+        border: 1px solid #e4ddd3;
+        border-radius: 16px;
+        padding: 20px;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin: 16px 0;
+      }
+      .dow {
+        text-align: center;
+        font-size: 11px;
+        color: #5f6b7a;
+      }
+      .cell {
+        min-height: 64px;
+        border-radius: 10px;
+        padding: 6px;
+        background: #f7f3ed;
+        font-size: 12px;
+      }
+      .cell.recorded {
+        background: #d8efe8;
+      }
+      .cell.covered {
+        background: #f7e4cf;
+      }
+      .cell.empty {
+        background: #f5d9d9;
+      }
+      .num {
+        font-weight: 700;
+      }
+      form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 12px;
+      }
+      input,
+      button {
+        font: inherit;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid #e4ddd3;
+      }
+      button {
+        grid-column: 1 / -1;
+        background: #0f5c4c;
+        color: white;
+        border: 0;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #feedback {
+        margin-top: 12px;
+        font-size: 13px;
+      }
+      #feedback[data-state='ok'] {
+        color: #1f6b45;
+      }
+      .note {
+        font-size: 12px;
+        color: #5f6b7a;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Página de ejemplo para probar el adaptador demo.
+      La extensión solo se inyecta en *.micompensacion.com.
+      Usa fixtures/verify.mjs para validar huecos sin el portal.
+      Para probar el DOM demo en navegador, abre este archivo y
+      ejecuta en consola las mismas marcas data-mch-*.
+    -->
+    <div
+      class="wrap"
+      data-mch-demo="true"
+      data-mch-year="2026"
+      data-mch-month="10"
+    >
+      <h1>Registro horario · Octubre 2026</h1>
+      <p class="note">
+        Ejemplo a medias: laborables vacíos en rojo, registrados en verde,
+        festivo/ausencia en ámbar.
+      </p>
+
+      <div class="grid" aria-hidden="true">
+        <div class="dow">L</div>
+        <div class="dow">M</div>
+        <div class="dow">X</div>
+        <div class="dow">J</div>
+        <div class="dow">V</div>
+        <div class="dow">S</div>
+        <div class="dow">D</div>
+      </div>
+
+      <div class="grid" id="monthGrid">
+        <!-- Oct 2026 starts on Thursday -->
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell recorded" data-mch-day="1" data-mch-status="recorded" data-mch-label="09:00–18:00">
+          <div class="num">1</div>
+          <div class="mch-cell-summary">09:00–18:00</div>
+        </div>
+        <div class="cell recorded" data-mch-day="2" data-mch-status="recorded" data-mch-label="09:00–18:00">
+          <div class="num">2</div>
+          <div class="mch-cell-summary">09:00–18:00</div>
+        </div>
+        <div class="cell" data-mch-day="3" data-mch-status="weekend"><div class="num">3</div></div>
+        <div class="cell" data-mch-day="4" data-mch-status="weekend"><div class="num">4</div></div>
+
+        <div class="cell empty" data-mch-day="5" data-mch-status="empty"><div class="num">5</div></div>
+        <div class="cell empty" data-mch-day="6" data-mch-status="empty"><div class="num">6</div></div>
+        <div class="cell empty" data-mch-day="7" data-mch-status="empty"><div class="num">7</div></div>
+        <div class="cell empty" data-mch-day="8" data-mch-status="empty"><div class="num">8</div></div>
+        <div class="cell covered" data-mch-day="9" data-mch-status="covered" data-mch-label="Festivo">
+          <div class="num">9</div>
+          <div class="mch-cell-summary">Festivo</div>
+        </div>
+        <div class="cell" data-mch-day="10" data-mch-status="weekend"><div class="num">10</div></div>
+        <div class="cell" data-mch-day="11" data-mch-status="weekend"><div class="num">11</div></div>
+
+        <div class="cell recorded" data-mch-day="12" data-mch-status="recorded" data-mch-label="09:00–18:00">
+          <div class="num">12</div>
+          <div class="mch-cell-summary">09:00–18:00</div>
+        </div>
+        <div class="cell empty" data-mch-day="13" data-mch-status="empty"><div class="num">13</div></div>
+        <div class="cell empty" data-mch-day="14" data-mch-status="empty"><div class="num">14</div></div>
+        <div class="cell empty" data-mch-day="15" data-mch-status="empty"><div class="num">15</div></div>
+        <div class="cell empty" data-mch-day="16" data-mch-status="empty"><div class="num">16</div></div>
+        <div class="cell" data-mch-day="17" data-mch-status="weekend"><div class="num">17</div></div>
+        <div class="cell" data-mch-day="18" data-mch-status="weekend"><div class="num">18</div></div>
+
+        <div class="cell empty" data-mch-day="19" data-mch-status="empty"><div class="num">19</div></div>
+        <div class="cell empty" data-mch-day="20" data-mch-status="empty"><div class="num">20</div></div>
+        <div class="cell empty" data-mch-day="21" data-mch-status="empty"><div class="num">21</div></div>
+        <div class="cell empty" data-mch-day="22" data-mch-status="empty"><div class="num">22</div></div>
+        <div class="cell empty" data-mch-day="23" data-mch-status="empty"><div class="num">23</div></div>
+        <div class="cell" data-mch-day="24" data-mch-status="weekend"><div class="num">24</div></div>
+        <div class="cell" data-mch-day="25" data-mch-status="weekend"><div class="num">25</div></div>
+
+        <div class="cell empty" data-mch-day="26" data-mch-status="empty"><div class="num">26</div></div>
+        <div class="cell empty" data-mch-day="27" data-mch-status="empty"><div class="num">27</div></div>
+        <div class="cell empty" data-mch-day="28" data-mch-status="empty"><div class="num">28</div></div>
+        <div class="cell empty" data-mch-day="29" data-mch-status="empty"><div class="num">29</div></div>
+        <div class="cell empty" data-mch-day="30" data-mch-status="empty"><div class="num">30</div></div>
+        <div class="cell" data-mch-day="31" data-mch-status="weekend"><div class="num">31</div></div>
+      </div>
+
+      <form id="dayForm">
+        <label>
+          Entrada
+          <input type="time" name="entrada" data-mch-field="entry" />
+        </label>
+        <label>
+          Salida
+          <input type="time" name="salida" data-mch-field="exit" />
+        </label>
+        <label>
+          Inicio pausa
+          <input type="time" name="pausaInicio" data-mch-field="breakStart" />
+        </label>
+        <label>
+          Fin pausa
+          <input type="time" name="pausaFin" data-mch-field="breakEnd" />
+        </label>
+        <button type="submit" data-mch-submit>Guardar</button>
+      </form>
+      <div id="feedback" data-mch-feedback></div>
+    </div>
+    <script src="sample-month.js"></script>
+  </body>
+</html>

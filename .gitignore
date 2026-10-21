@@ -1,0 +1,10 @@
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.crx
+*.pem
+*.zip
+node_modules/
+.env
+.env.*

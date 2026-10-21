@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mi Compensación · Hours</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <p class="eyebrow">Mi Compensación</p>
+        <h1>Time Tracking</h1>
+      </div>
+      <button
+        type="button"
+        id="btnRefresh"
+        class="icon-btn"
+        title="Refresh"
+        aria-label="Refresh"
+      >
+        <svg
+          class="icon-refresh"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M21 12a9 9 0 1 1-2.6-6.2" />
+          <polyline points="21 3 21 9 15 9" />
+        </svg>
+      </button>
+    </header>
+
+    <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+    <section id="statusBanner" class="banner" hidden></section>
+
+    <section class="card" id="monthCard">
+      <div class="card-head">
+        <div class="month-nav">
+          <button
+            type="button"
+            id="btnPrevMonth"
+            class="icon-btn"
+            title="Previous month"
+            aria-label="Previous month"
+          >
+            ‹
+          </button>
+          <label class="month-select-wrap">
+            <span class="visually-hidden">Month</span>
+            <select
+              id="monthSelect"
+              class="month-select"
+              title="Go to a month"
+              aria-label="Select month"
+            ></select>
+          </label>
+          <label class="month-select-wrap month-select-wrap--year">
+            <span class="visually-hidden">Year</span>
+            <select
+              id="yearSelect"
+              class="month-select month-select--year"
+              title="Go to a year"
+              aria-label="Select year"
+            ></select>
+          </label>
+          <button
+            type="button"
+            id="btnNextMonth"
+            class="icon-btn"
+            title="Next month"
+            aria-label="Next month"
+          >
+            ›
+          </button>
+        </div>
+      </div>
+      <p id="monthHint" class="muted" hidden></p>
+      <div class="cal-dow" aria-hidden="true">
+        <span>M</span><span>T</span><span>W</span><span>T</span>
+        <span>F</span><span>S</span><span>S</span>
+      </div>
+      <div class="cal-wrap">
+        <div id="monthGrid" class="cal-grid" role="grid"></div>
+        <div
+          id="monthLoader"
+          class="cal-loader"
+          hidden
+          role="status"
+          aria-live="polite"
+        >
+          <span class="cal-spinner" aria-hidden="true"></span>
+          <span class="cal-loader-text">Loading month…</span>
+        </div>
+      </div>
+      <ul class="cal-legend" aria-label="Calendar legend">
+        <li><span class="leg-swatch recorded" aria-hidden="true"></span> Recorded</li>
+        <li><span class="leg-swatch empty" aria-hidden="true"></span> Gap</li>
+        <li><span class="leg-swatch covered" aria-hidden="true"></span> Off</li>
+        <li><span class="leg-swatch anomaly" aria-hidden="true"></span> Review</li>
+      </ul>
+      <div id="selectionBar" class="selection-bar" hidden>
+        <span id="selectionCount" class="selection-count">0 days</span>
+        <button type="button" id="btnClearSelection" class="ghost">
+          Clear
+        </button>
+      </div>
+    </section>
+
+    <section class="card" id="confirmCard">
+      <h2>Confirm submission</h2>
+      <p id="confirmText">Select at least one day on the calendar.</p>
+      <div id="batchWarn" class="batch-warn" hidden role="status">
+        <p id="batchWarnTitle" class="batch-warn-title"></p>
+        <ul id="batchWarnList" class="batch-warn-list"></ul>
+      </div>
+      <div id="confirmSchedule" class="confirm-schedule">
+        <p id="timelineSummary" class="timeline-summary" aria-live="polite">
+          —
+        </p>
+        <div
+          class="timeline"
+          id="dayTimeline"
+          role="group"
+          aria-label="Adjust the workday by dragging the controls"
+        >
+          <div class="timeline-scale" id="timelineScale" aria-hidden="true">
+            <span data-minutes="420">7:00</span>
+            <span data-minutes="660">11:00</span>
+            <span data-minutes="900">15:00</span>
+            <span data-minutes="1140">19:00</span>
+            <span data-minutes="1260">21:00</span>
+          </div>
+          <div class="timeline-track" id="timelineTrack">
+            <div class="timeline-work" id="timelineWork" aria-hidden="true"></div>
+            <button
+              type="button"
+              class="timeline-handle is-entry"
+              data-handle="entry"
+              aria-label="Start time"
+            ></button>
+            <button
+              type="button"
+              class="timeline-handle is-exit"
+              data-handle="exit"
+              aria-label="End time"
+            ></button>
+          </div>
+        </div>
+        <div class="timeline-chips">
+          <label class="timeline-chip">
+            <span class="chip-label">Start</span>
+            <input
+              type="time"
+              id="chipEntry"
+              class="chip-value"
+              step="900"
+              value="09:00"
+            />
+          </label>
+          <label class="timeline-chip">
+            <span class="chip-label">End</span>
+            <input
+              type="time"
+              id="chipExit"
+              class="chip-value"
+              step="900"
+              value="18:00"
+            />
+          </label>
+          <label class="timeline-chip">
+            <span class="chip-label">Break</span>
+            <select
+              id="chipPause"
+              class="chip-value chip-pause"
+              aria-label="Break duration"
+            >
+              <option value="00:00">0 min</option>
+              <option value="00:15">15 min</option>
+              <option value="00:30">30 min</option>
+              <option value="00:45">45 min</option>
+              <option value="01:00" selected>1 h</option>
+              <option value="01:15">1 h 15</option>
+              <option value="01:30">1 h 30</option>
+              <option value="02:00">2 h</option>
+            </select>
+          </label>
+        </div>
+        <input type="hidden" id="confirmEntry" />
+        <input type="hidden" id="confirmExit" />
+        <input type="hidden" id="confirmPause" />
+      </div>
+      <div class="row">
+        <button type="button" id="btnConfirmSend" class="primary" disabled>
+          Submit
+        </button>
+        <button
+          type="button"
+          id="btnConfirmCancel"
+          class="ghost"
+          title="Reset to today"
+        >
+          Reset
+        </button>
+      </div>
+    </section>
+
+    <footer class="footer">
+      The last submitted schedule is reused for the next days. It does not
+      store your password; it only uses the SSO session already open.
+    </footer>
+
+    <div
+      id="calTooltip"
+      class="cal-tip"
+      hidden
+      role="tooltip"
+    ></div>
+
+    <div
+      id="batchConfirmDialog"
+      class="batch-dialog"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="batchDialogTitle"
+    >
+      <div class="batch-dialog-backdrop" data-batch-dismiss></div>
+      <div class="batch-dialog-card">
+        <h2 id="batchDialogTitle">Update multiple days?</h2>
+        <p id="batchDialogLead" class="batch-dialog-lead"></p>
+        <ul id="batchDialogList" class="batch-dialog-list"></ul>
+        <p id="batchDialogSchedule" class="batch-dialog-schedule"></p>
+        <p class="batch-dialog-note">
+          This cannot be undone from the extension. Each day will be
+          updated with the same schedule.
+        </p>
+        <div class="row batch-dialog-actions">
+          <button
+            type="button"
+            id="btnBatchDialogConfirm"
+            class="primary"
+          >
+            Yes, update all
+          </button>
+          <button
+            type="button"
+            id="btnBatchDialogCancel"
+            class="ghost"
+            data-batch-dismiss
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
