@@ -10,6 +10,10 @@ have open in the browser.
 > This is a personal, unofficial helper. Use it only if your workplace policy
 > allows automating the portal UI.
 
+## Preview
+
+![Side panel calendar with gaps and schedule confirmation](docs/preview-sidepanel.jpg)
+
 ## Features
 
 - Side panel calendar for the selected month
