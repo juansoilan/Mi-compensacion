@@ -18,14 +18,75 @@ have open in the browser.
 - Remembers the last schedule you submitted as the default
 - Uses the portal session already open — **does not store your password**
 
-## Install (Chrome / Chromium)
+## Download
 
-1. Clone this repository (or download the ZIP and unpack it).
-2. Open `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Click **Load unpacked** and select the **repository root** (the folder that
-   contains `manifest.json`).
-5. Pin the extension if you want quick access to the side panel.
+Get a local copy of the repo (pick one):
+
+**Option A — ZIP (no Git required)**
+
+1. Open the [GitHub repository](https://github.com/juansoilan/mi-compensacion-horas).
+2. Click the green **Code** button → **Download ZIP**.
+3. Unzip it somewhere permanent (for example `~/Extensions/mi-compensacion-horas`).
+4. The folder you load must contain `manifest.json` at the root.
+
+**Option B — Git clone**
+
+```bash
+git clone https://github.com/juansoilan/mi-compensacion-horas.git
+cd mi-compensacion-horas
+```
+
+Keep the folder; Chrome/Edge load the extension from that path. If you move or
+delete it, the browser will disable the extension until you load it again.
+
+## Install on Google Chrome
+
+1. Open `chrome://extensions` in the address bar.
+2. Turn on **Developer mode** (top-right toggle).
+3. Click **Load unpacked**.
+4. Select the **repository root** (the folder that contains `manifest.json`).
+5. Confirm the extension appears in the list and is enabled.
+6. Optionally pin it from the puzzle-piece menu for quick access to the side
+   panel.
+
+## Install on Microsoft Edge
+
+Edge is Chromium-based, so the same unpacked flow works **if** your machine
+allows developer / sideloaded extensions.
+
+1. Open `edge://extensions` in the address bar.
+2. Turn on **Developer mode** (left sidebar / bottom toggle, depending on Edge
+   version).
+3. Click **Load unpacked**.
+4. Select the **repository root** (the folder that contains `manifest.json`).
+5. Confirm the extension appears and is enabled.
+
+### Edge managed by your company (common blocker)
+
+Many corporate Edge installs are **managed by MDM / Intune / Group Policy**. In
+that case you may see errors such as:
+
+- Developer mode is locked or turns itself off
+- **Load unpacked** is missing or greyed out
+- “This extension is not from any known source” / not signed / blocked by
+  organization policy
+- The extension installs briefly and then disappears after a policy refresh
+
+This project is an **unpacked, unsigned** developer build. It is **not**
+published to the Edge Add-ons store and is **not** enterprise-signed. If your
+company policy only allows store or allowlisted extensions, **you will not be
+able to add it on that managed Edge profile**.
+
+What you can try (only if your IT policy allows it):
+
+- Use a **personal / non-managed** Edge or Chrome profile on the same machine
+- Use **Google Chrome** (if it is not under the same extension policy)
+- Ask IT whether unpacked / developer extensions are permitted, or whether the
+  extension can be allowlisted
+
+Do **not** try to bypass corporate security controls. If policy blocks it, use
+Chrome on a device/profile where you are allowed to load unpacked extensions,
+or do not install it.
 
 ## Usage
 
