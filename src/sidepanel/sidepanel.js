@@ -47,6 +47,7 @@ const els = {
   confirmExit: document.getElementById('confirmExit'),
   confirmPause: document.getElementById('confirmPause'),
   batchWarn: document.getElementById('batchWarn'),
+  finalizarNote: document.getElementById('finalizarNote'),
   batchWarnTitle: document.getElementById('batchWarnTitle'),
   batchWarnList: document.getElementById('batchWarnList'),
   timelineTrack: document.getElementById('timelineTrack'),
@@ -77,6 +78,11 @@ const TIMELINE_START = 7 * 60;
 const TIMELINE_END = 21 * 60;
 const TIMELINE_SPAN = TIMELINE_END - TIMELINE_START;
 const SNAP_MINUTES = 15;
+/** Min workdayScore for a frame to count as the Finalizar form. */
+const FINALIZAR_MIN_SCORE = 25;
+const FINALIZAR_HELP =
+  'To submit new days, open “Summary of your workday” ' +
+  '(RegistroHorario/Finalizar) in the portal, then press refresh.';
 const MIN_SEGMENT = 15;
 
 /** @type {null | { kind: string, startX: number, origin: object }} */
@@ -586,6 +592,9 @@ function syncConfirmPanel({ scroll = false, forceSchedule = false } = {}) {
 /** Confirm card with no days selected. The card itself stays on screen. */
 function showConfirmIdle() {
   hideBatchWarn();
+  if (els.finalizarNote) {
+    els.finalizarNote.hidden = true;
+  }
   const confirmTitle = els.confirmCard.querySelector('h2');
   if (confirmTitle) {
     confirmTitle.textContent = 'Confirm submission';
@@ -680,6 +689,13 @@ function showConfirmForSelection({
       `You are about to apply one schedule to ${isos.length} days. ` +
       `All of them will be changed.`;
     showBatchWarn(isos, { editCount, coverCount });
+  }
+
+  if (els.finalizarNote) {
+    els.finalizarNote.hidden = !(
+      !finalizarReady &&
+      isos.some((iso) => dayMeta.get(iso)?.mode !== 'edit')
+    );
   }
 
   els.confirmCard.hidden = false;
@@ -1146,6 +1162,19 @@ async function confirmAndClose() {
     return;
   }
 
+  // New days (cover) need the Finalizar form; fail before sending anything.
+  const needsFinalizar = isos.some(
+    (iso) => dayMeta.get(iso)?.mode !== 'edit',
+  );
+  if (needsFinalizar) {
+    finalizarReady = await detectFinalizarFrame(tab.id);
+    syncConfirmPanel();
+    if (!finalizarReady) {
+      showToast('danger', FINALIZAR_HELP);
+      return;
+    }
+  }
+
   const schedule = {
     entry: els.confirmEntry.value || settings.schedule.entry,
     exit: els.confirmExit.value || settings.schedule.exit,
@@ -1369,11 +1398,10 @@ async function sendCloseOnce(tabId, message, frameIds) {
   // Edits via FinalizarAux only need any same-origin portal frame.
   const canEditViaAux =
     Boolean(message.auxUrl) || message.mode === 'edit';
-  if (!target || (!canEditViaAux && target.score < 25)) {
+  if (!target || (!canEditViaAux && target.score < FINALIZAR_MIN_SCORE)) {
     return {
       ok: false,
-      error:
-        'Finalizar (“Summary of your workday”) not found. Open it in the portal and try again.',
+      error: `Finalizar (“Summary of your workday”) not found. ${FINALIZAR_HELP}`,
     };
   }
   return chrome.tabs.sendMessage(tabId, message, {
@@ -2021,7 +2049,7 @@ async function detectFinalizarFrame(tabId) {
       if (
         ping?.ok &&
         (/RegistroHorario\/Finalizar/i.test(ping.href || '') ||
-          (ping.workdayScore || 0) >= 100)
+          (ping.workdayScore || 0) >= FINALIZAR_MIN_SCORE)
       ) {
         return true;
       }
