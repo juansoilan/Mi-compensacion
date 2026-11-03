@@ -480,6 +480,7 @@ function toggleDaySelection(btn) {
     label: btn.dataset.label || '',
     auxUrl: btn.dataset.auxUrl || '',
   });
+  const wasEmpty = selectedIsos.size === 0;
   if (selectedIsos.has(iso)) {
     selectedIsos.delete(iso);
   } else {
@@ -490,7 +491,9 @@ function toggleDaySelection(btn) {
     preferTodaySelection = false;
   }
   syncSelectionBar();
-  syncConfirmPanel({ scroll: selectedIsos.size > 0 });
+  // Scroll to the confirm card only on the first pick, so building a
+  // multi-day selection does not keep jumping away from the calendar.
+  syncConfirmPanel({ scroll: wasEmpty && selectedIsos.size > 0 });
 }
 
 function clearSelection() {
