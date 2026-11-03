@@ -189,4 +189,23 @@ assert(
   'second page offset = 40',
 );
 
+// Workplace comes from the card text (real MisRegistros markup).
+const card = (day, label) => `
+<div class="bloque " onclick=OpenModal(&#39;k&#39;,0,1,false,&#39;&#39;,true,&#39;/_rhapp/RegistroHorario/FinalizarAux?data=${day}&#39;) role=button>
+  <input type="hidden" id="texto_historial_${day}" value="Tuesday, 03 Of November Normal Day" />
+  <p class="fecha-may pull-left">Tuesday, 03 Of November<span class='ocultar_nombre'> - Normal Day - ${label}</span></p>
+  <i class="fal fa-hourglass-start"></i><span class="tiempo_registro"> 09:00</span>
+  <i class="fal fa-hourglass-end"></i><span class="tiempo_registro"> 18:00</span>
+</div>`;
+const wpExternal = parseMisRegistrosHtml(card('a', 'I work in an external office'), 2026)[0];
+assert(wpExternal.workplace === 'remote', 'external office → remote');
+assert(wpExternal.workplaceText === 'I work in an external office', 'text kept');
+const wpRemoteWork = parseMisRegistrosHtml(card('b', 'Remote work'), 2026)[0];
+assert(wpRemoteWork.workplace === 'office', 'Remote work → office flag');
+const wpUnknown = parseMisRegistrosHtml(card('c', 'Something else'), 2026)[0];
+assert(wpUnknown.workplace === '' && wpUnknown.workplaceText === 'Something else', 'unknown kept as text');
+assert(parseMisRegistrosHtml(sample, 2026)[0].workplace === '', 'no label → unknown');
+const monthWp = buildMonthDaysFromRecords(2026, 11, [wpExternal], new Date('2026-11-10T12:00:00'));
+assert(monthWp.find((d) => d.day === 3).workplace === 'remote', 'workplace reaches month day');
+
 console.log('verify-mis-registros.mjs OK');

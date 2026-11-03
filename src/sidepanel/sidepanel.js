@@ -57,6 +57,7 @@ const els = {
   chipEntry: document.getElementById('chipEntry'),
   chipExit: document.getElementById('chipExit'),
   chipPause: document.getElementById('chipPause'),
+  workplaceGroup: document.getElementById('workplaceGroup'),
   btnConfirmSend: document.getElementById('btnConfirmSend'),
   btnConfirmCancel: document.getElementById('btnConfirmCancel'),
   batchConfirmDialog: document.getElementById('batchConfirmDialog'),
@@ -744,6 +745,19 @@ function showBatchWarn(isos, counts) {
     li.textContent = meta?.label
       ? `${iso} · ${meta.label} (${mode})`
       : `${iso} (${mode})`;
+    const sel = document.createElement('select');
+    sel.className = 'day-workplace';
+    sel.setAttribute('aria-label', `Workplace for ${iso}`);
+    for (const [value, text] of [
+      ['', 'As recorded'],
+      ['office', 'Office'],
+      ['remote', 'Out of office'],
+    ]) {
+      sel.add(new Option(text, value));
+    }
+    sel.value = workplaceFor(iso);
+    sel.addEventListener('change', () => dayWorkplace.set(iso, sel.value));
+    li.appendChild(sel);
     els.batchWarnList.appendChild(li);
   }
   els.batchWarn.hidden = false;
@@ -818,9 +832,9 @@ function showBatchConfirmDialog(isos) {
     for (const iso of isos) {
       const li = document.createElement('li');
       const meta = dayMeta.get(iso);
-      li.textContent = meta?.label
-        ? `${iso} · ${meta.label}`
-        : iso;
+      li.textContent =
+        (meta?.label ? `${iso} · ${meta.label}` : iso) +
+        ` · ${workplaceLabel(iso)}`;
       els.batchDialogList.appendChild(li);
     }
   }
@@ -1153,6 +1167,41 @@ function setCellUpdating(iso, isUpdating) {
   }
 }
 
+/** Global workplace choice: '' = as recorded (edit) / office (new). */
+let workplaceDefault = '';
+/** Per-day overrides: iso → 'office' | 'remote' | ''. */
+const dayWorkplace = new Map();
+
+/** @param {string} iso */
+function workplaceFor(iso) {
+  return dayWorkplace.has(iso) ? dayWorkplace.get(iso) : workplaceDefault;
+}
+
+els.workplaceGroup?.addEventListener('change', (event) => {
+  const input = event.target;
+  if (input instanceof HTMLInputElement && input.name === 'workplace') {
+    workplaceDefault = input.value;
+    dayWorkplace.clear();
+    for (const sel of els.batchWarnList?.querySelectorAll('select') || []) {
+      sel.value = workplaceDefault;
+    }
+  }
+});
+
+/**
+ * Label for the workplace that will be sent for a day.
+ * @param {string} iso
+ */
+function workplaceLabel(iso) {
+  const value = workplaceFor(iso);
+  if (value === 'remote') return 'Out of office';
+  if (value === 'office') return 'Office';
+  // Nothing chosen: new days default to office, edits keep the recorded one.
+  return dayMeta.get(iso)?.mode === 'edit'
+    ? 'Workplace as recorded'
+    : 'Office';
+}
+
 async function confirmAndClose() {
   const isos = sortedSelectedIsos();
   if (!isos.length) {
@@ -1217,6 +1266,7 @@ async function confirmAndClose() {
           date: iso,
           mode,
           auxUrl,
+          workplace: workplaceFor(iso),
         });
         if (!result?.ok) {
           throw new Error(result?.error || 'The portal rejected the submission.');
@@ -1605,6 +1655,9 @@ function renderCalendarView() {
       isSelected ? 'is-selected' : '',
       isUpdating ? 'is-updating' : '',
       anomalous ? 'is-anomaly' : '',
+      !offline && cell.status === DAY_STATUS.recorded && cell.workplace
+        ? `wp-${cell.workplace}`
+        : '',
     ]
       .filter(Boolean)
       .join(' ');
@@ -1871,6 +1924,20 @@ function buildCellTooltipModel(cell, opts) {
     }
     if (cell.effective) {
       rows.push({ icon: 'work', label: 'Work', value: cell.effective });
+    }
+    if (cell.workplace || cell.workplaceText) {
+      // The portal calls the office flag "Remote work", so use our own
+      // wording when known and only fall back to the portal text.
+      const known = cell.workplace === 'remote' || cell.workplace === 'office';
+      rows.push({
+        icon: known ? `wp-${cell.workplace}` : 'info',
+        label: 'Workplace',
+        value: known
+          ? cell.workplace === 'remote'
+            ? 'Out of office'
+            : 'Office'
+          : cell.workplaceText,
+      });
     }
     const breakValue = formatBreakValue(cell);
     if (breakValue) {

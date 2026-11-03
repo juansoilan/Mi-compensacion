@@ -163,6 +163,33 @@ export async function fetchMonthViaMisRegistros(year, month, opts = {}) {
 }
 
 /**
+ * Workplace as the portal prints it on the card, e.g.
+ * "Tuesday, 03 Of November - Normal Day - I work in an external office".
+ * `text` is the portal wording; `key` is 'remote' (InformaOficina, external
+ * office), 'office' (InformaTeletrabajo, "Remote work") or '' if unknown.
+ * @param {string} chunk
+ * @returns {{ key: 'office' | 'remote' | '', text: string }}
+ */
+export function parseCardWorkplace(chunk) {
+  const span = String(chunk || '').match(
+    /<span[^>]*\bocultar_nombre\b[^>]*>([\s\S]*?)<\/span>/i,
+  )?.[1];
+  const text = String(span || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/\s+-\s+/)
+    .slice(1)
+    .pop()
+    ?.trim() || '';
+  const norm = normalizeText(text);
+  let key = '';
+  if (norm.includes('external office')) key = 'remote';
+  else if (norm.includes('remote work')) key = 'office';
+  return { key, text };
+}
+
+/**
  * @param {string} chunk
  * @returns {string} path+query for FinalizarAux, or ''
  */
@@ -217,6 +244,7 @@ export function parseMisRegistrosHtml(html, fallbackYear) {
       /fa-pause[\s\S]{0,160}?class="tiempo_registro"[^>]*>\s*([0-9]{1,3}:[0-5]\d)/i,
     )?.[1];
     const auxUrl = extractFinalizarAuxUrl(chunk);
+    const workplace = parseCardWorkplace(chunk);
     const blob = normalizeText(`${hist} ${chunk.replace(/<[^>]+>/g, ' ')}`);
     const isCovered = MIS_COVERED_KEYWORDS.some((k) => blob.includes(k));
     // Closed days in Compensa open via FinalizarAux; drafts/open days do not.
@@ -245,6 +273,8 @@ export function parseMisRegistrosHtml(html, fallbackYear) {
         exit,
         effective: effective || '',
         pause: pause || '',
+        workplace: workplace.key,
+        workplaceText: workplace.text,
       });
     }
     // Skip open/planned cards (times without FinalizarAux).
@@ -409,6 +439,8 @@ export function buildMonthDaysFromRecords(
       exit: rec.exit || '',
       effective: rec.effective || '',
       pause: rec.pause || '',
+      workplace: rec.workplace || '',
+      workplaceText: rec.workplaceText || '',
       detail: rec.detail || '',
     });
   }

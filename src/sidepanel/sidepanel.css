@@ -16,6 +16,8 @@
   --warn-soft: #dad2bd;
   --danger: #cb4b40;
   --danger-soft: #ffe3e1;
+  --remote: #7a4cc2;
+  --remote-soft: #e6dcf6;
   --anomaly: #ffc828;
   --anomaly-ink: #0d1115;
   --tip-bg: #23366f;
@@ -406,6 +408,10 @@ h2 {
   background: var(--accent-soft);
 }
 
+.cal-cell.recorded.wp-remote {
+  background: var(--remote-soft);
+}
+
 .cal-cell.covered {
   background: var(--warn-soft);
 }
@@ -484,6 +490,11 @@ h2 {
 .leg-swatch.recorded {
   background: var(--accent-soft);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.leg-swatch.remote {
+  background: var(--remote-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--remote) 40%, transparent);
 }
 
 .leg-swatch.empty {
@@ -1097,4 +1108,75 @@ button:disabled {
   font-size: 11px;
   color: var(--muted);
   line-height: 1.35;
+}
+
+.workplace {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.workplace legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.workplace label {
+  cursor: pointer;
+}
+
+.workplace input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.workplace span {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.workplace input:checked + span {
+  border-color: var(--tip-accent);
+  box-shadow: inset 0 0 0 1px var(--tip-accent);
+}
+
+.workplace input:focus-visible + span {
+  outline: 2px solid var(--tip-accent);
+  outline-offset: 1px;
+}
+
+.day-workplace {
+  margin-left: 6px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.cal-tip-icon.is-wp-office::before,
+.cal-tip-icon.is-wp-remote::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.cal-tip-icon.is-wp-office::before {
+  background: var(--accent);
+}
+
+.cal-tip-icon.is-wp-remote::before {
+  background: var(--remote);
 }

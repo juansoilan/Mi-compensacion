@@ -102,7 +102,8 @@
         </div>
       </div>
       <ul class="cal-legend" aria-label="Calendar legend">
-        <li><span class="leg-swatch recorded" aria-hidden="true"></span> Recorded</li>
+        <li><span class="leg-swatch recorded" aria-hidden="true"></span> Office</li>
+        <li><span class="leg-swatch remote" aria-hidden="true"></span> Out of office</li>
         <li><span class="leg-swatch empty" aria-hidden="true"></span> Gap</li>
         <li><span class="leg-swatch covered" aria-hidden="true"></span> Off</li>
         <li><span class="leg-swatch anomaly" aria-hidden="true"></span> Review</li>
@@ -200,6 +201,21 @@
             </select>
           </label>
         </div>
+        <fieldset class="workplace" id="workplaceGroup">
+          <legend>Workplace</legend>
+          <label>
+            <input type="radio" name="workplace" value="" checked />
+            <span>As recorded</span>
+          </label>
+          <label>
+            <input type="radio" name="workplace" value="office" />
+            <span>Office</span>
+          </label>
+          <label>
+            <input type="radio" name="workplace" value="remote" />
+            <span>Out of office</span>
+          </label>
+        </fieldset>
         <input type="hidden" id="confirmEntry" />
         <input type="hidden" id="confirmExit" />
         <input type="hidden" id="confirmPause" />
