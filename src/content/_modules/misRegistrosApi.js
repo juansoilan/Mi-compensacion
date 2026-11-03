@@ -114,6 +114,7 @@ export async function fetchMonthViaMisRegistros(year, month, opts = {}) {
     }
 
     const htmlChunks = [];
+    const seenKeys = new Set();
     let ultimaRow = 0;
     const pageSize = 40;
     for (let page = 0; page < 30; page += 1) {
@@ -123,8 +124,12 @@ export async function fetchMonthViaMisRegistros(year, month, opts = {}) {
         return result;
       }
       const blocks = countBloques(result.html);
+      const keys = historialKeys(result.html);
+      const hasFresh = keys.some((k) => !seenKeys.has(k));
+      keys.forEach((k) => seenKeys.add(k));
       htmlChunks.push(result.html);
-      if (blocks === 0) {
+      // Stop on empty page, or on a page with no new rows (server ignored UltimaRow).
+      if (blocks === 0 || !hasFresh) {
         break;
       }
       ultimaRow += blocks;
@@ -422,13 +427,21 @@ export function buildMonthDaysFromRecords(
   return days;
 }
 
-function buildObtenerMasBody(year, month, ultimaRow, cantidadRows) {
+/**
+ * Request body for ObtenerMas. Dates go as ISO (toISOString), matching the
+ * portal's own request. `Date.toString()` was ignored by the server, which
+ * returned the full history instead of the requested month.
+ * Range mirrors the portal: local midnight of day 1 up to local midnight of
+ * the following month.
+ * @returns {URLSearchParams}
+ */
+export function buildObtenerMasBody(year, month, ultimaRow, cantidadRows) {
   const from = new Date(year, month - 1, 1, 0, 0, 0);
-  const to = new Date(year, month, 0, 23, 59, 59);
+  const to = new Date(year, month, 1, 0, 0, 0);
   const params = new URLSearchParams();
   params.set('UltimaRow', String(ultimaRow));
-  params.set('FechaDesde', from.toString());
-  params.set('FechaHasta', to.toString());
+  params.set('FechaDesde', from.toISOString());
+  params.set('FechaHasta', to.toISOString());
   params.set('HorasExtra', 'false');
   params.set('CantidadRows', String(cantidadRows));
   params.set('PersonaId', '');
@@ -481,6 +494,17 @@ async function postObtenerMas(body, token) {
 function countBloques(html) {
   const matches = String(html || '').match(/class="[^"]*\bbloque\b/gi);
   return matches?.length || 0;
+}
+
+/** Unique per-row keys (historial text) present in an ObtenerMas fragment. */
+function historialKeys(html) {
+  const keys = [];
+  const re = /id="texto_historial_[^"]*"\s+value="([^"]+)"/gi;
+  let m;
+  while ((m = re.exec(String(html || ''))) !== null) {
+    keys.push(m[1]);
+  }
+  return keys;
 }
 
 async function resolveAntiforgeryToken() {
