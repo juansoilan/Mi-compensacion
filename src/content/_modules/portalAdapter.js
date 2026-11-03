@@ -40,7 +40,7 @@ export async function readMonth(opts = {}) {
  * Close a day via POST Finalizar (new) or FinalizarAux (edit).
  * @param {{ entry: string, exit: string, pause?: string, breakStart?: string, breakEnd?: string }} schedule
  * @param {Date|string} [date]
- * @param {{ auxUrl?: string, mode?: 'edit' | 'cover' }} [options]
+ * @param {{ auxUrl?: string, mode?: 'edit' | 'cover', workplace?: 'office' | 'remote' | '' }} [options]
  */
 export async function closeToday(schedule, date, options = {}) {
   const stored = await loadStoredSchedule();

@@ -87,6 +87,7 @@ export function collectFinalizarMeta(doc = document) {
 
   // Exact name only — findNamedValue('Id') would also match TipoDiaId.
   const id = findExactNamedValue(doc, ['Id']) || '0';
+  const workplace = readWorkplace(doc);
 
   return {
     ok: true,
@@ -95,8 +96,33 @@ export function collectFinalizarMeta(doc = document) {
       rhPersonaIdEncrypted,
       tipoDiaId: String(tipoDiaId),
       id: String(id),
+      workplace,
     },
   };
+}
+
+/**
+ * Where the day was worked, from the two portal checkboxes.
+ * InformaTeletrabajo = office / co-working; InformaOficina = outside the office.
+ * @param {Document} doc
+ * @returns {'office' | 'remote' | ''} '' when the form shows neither checked
+ */
+export function readWorkplace(doc) {
+  const checked = (name) =>
+    Array.from(doc.querySelectorAll(`input[type="checkbox"]`)).some(
+      (el) => el.name === name && el.checked,
+    );
+  if (checked('InformaOficina')) return 'remote';
+  if (checked('InformaTeletrabajo')) return 'office';
+  return '';
+}
+
+/**
+ * @param {unknown} value
+ * @returns {'office' | 'remote' | ''}
+ */
+export function normalizeWorkplace(value) {
+  return value === 'office' || value === 'remote' ? value : '';
 }
 
 /**
@@ -178,6 +204,8 @@ export function buildFinalizarBody(schedule, meta, date = new Date()) {
   const efectivo = effectiveSeconds(schedule);
   const id = String(meta.id || '0');
   const isNew = meta.isNew !== false && id === '0';
+  // Default office keeps the previous behaviour when nothing is chosen.
+  const remote = normalizeWorkplace(meta.workplace) === 'remote';
 
   const params = new URLSearchParams();
   params.set('FechaHoraFin', fecha);
@@ -187,7 +215,8 @@ export function buildFinalizarBody(schedule, meta, date = new Date()) {
   params.set('HoraFin', normalizeHhMm(schedule.exit));
   params.set('HoraInicio', normalizeHhMm(schedule.entry));
   params.set('Id', id);
-  params.set('InformaTeletrabajo', 'True');
+  params.set('InformaOficina', remote ? 'True' : 'False');
+  params.set('InformaTeletrabajo', remote ? 'False' : 'True');
   params.set('MotivoHorasExtra', '');
   params.set('MotivoNuevo', '');
   params.set('RegistroManual', 'True');
@@ -352,7 +381,13 @@ export async function closeTodayViaApi(
     return pending;
   }
 
-  const task = performClose(schedule, targetDate, kind, dayKey);
+  const task = performClose(
+    schedule,
+    targetDate,
+    kind,
+    dayKey,
+    normalizeWorkplace(options.workplace),
+  );
   guard.inflight.set(dayKey, task);
   try {
     return await task;
@@ -368,8 +403,15 @@ export async function closeTodayViaApi(
  * @param {Date} targetDate
  * @param {{ kind: 'edit', auxUrl: string } | { kind: 'cover' }} kind
  * @param {string} dayKey
+ * @param {'office' | 'remote' | ''} workplace '' = keep recorded (edit) / office (new)
  */
-async function performClose(schedule, targetDate, kind, dayKey) {
+async function performClose(
+  schedule,
+  targetDate,
+  kind,
+  dayKey,
+  workplace,
+) {
   /** @type {{ token: string, rhPersonaIdEncrypted: string, tipoDiaId: string, id?: string, isNew?: boolean }} */
   let meta;
   /** @type {string} */
@@ -405,6 +447,7 @@ async function performClose(schedule, targetDate, kind, dayKey) {
     postUrl = buildFinalizarUrl(location.href);
   }
 
+  meta = { ...meta, workplace: workplace || meta.workplace || 'office' };
   const body = buildFinalizarBody(schedule, meta, targetDate);
   // Hard stop: never POST an "edit" shaped as a new record.
   if (
@@ -425,6 +468,7 @@ async function performClose(schedule, targetDate, kind, dayKey) {
     schedule.entry || '',
     schedule.exit || '',
     schedule.pause || '',
+    meta.workplace,
   ].join('|');
   const guard = closeGuard();
 

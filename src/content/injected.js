@@ -55,6 +55,7 @@ async function handle(message) {
       return closeToday(message.schedule, message.date, {
         auxUrl: message.auxUrl || '',
         mode: message.mode === 'edit' ? 'edit' : 'cover',
+        workplace: message.workplace || '',
       });
     }
     default:

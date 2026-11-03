@@ -4,6 +4,8 @@
  */
 import {
   buildMonthDaysFromRecords,
+  buildObtenerMasBody,
+  fetchMonthViaMisRegistros,
   parseMisRegistrosHtml,
   parseRegistroDateText,
 } from '../src/content/_modules/misRegistrosApi.js';
@@ -117,5 +119,93 @@ const holiday = parseMisRegistrosHtml(
 assert(holiday.length === 1, 'holiday record');
 assert(holiday[0].status === DAY_STATUS.covered, 'holiday covered');
 assert(holiday[0].label === 'Off', `holiday label ${holiday[0].label}`);
+
+// Request body: dates must be ISO (portal format), not Date.toString().
+const body = buildObtenerMasBody(2026, 10, 0, 5);
+const bodyFrom = body.get('FechaDesde');
+const bodyTo = body.get('FechaHasta');
+assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(bodyFrom), `from ISO ${bodyFrom}`);
+assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(bodyTo), `to ISO ${bodyTo}`);
+assert(
+  new Date(bodyFrom).getTime() === new Date(2026, 9, 1).getTime(),
+  'from = local midnight Oct 1',
+);
+assert(
+  new Date(bodyTo).getTime() === new Date(2026, 10, 1).getTime(),
+  'to = local midnight Nov 1 (exclusive end)',
+);
+assert(body.get('CantidadRows') === '5', 'page size in body');
+assert(body.get('UltimaRow') === '0', 'offset in body');
+
+// Pagination: a server that ignores UltimaRow returns the same full page.
+// The loop must stop after the first repeated page, not walk 30 pages.
+function fakeFragment(prefix) {
+  let out = '';
+  for (let i = 0; i < 40; i += 1) {
+    out += `<div class="bloque" onclick="OpenModal('${prefix}${i}',0,0,false,'',false,'/x')">
+      <input id="texto_historial_${prefix}${i}" value="${prefix} row ${i}" />
+    </div>\n`;
+  }
+  return out;
+}
+
+globalThis.location = { origin: 'https://www.micompensacion.com' };
+globalThis.document = {
+  querySelector: () => ({ value: 'token-test' }),
+};
+const requestBodies = [];
+globalThis.fetch = async (_url, init) => {
+  requestBodies.push(String(init.body));
+  return {
+    ok: true,
+    status: 200,
+    text: async () => fakeFragment('same'),
+  };
+};
+
+const repeated = await fetchMonthViaMisRegistros(2030, 3, { force: true });
+assert(repeated.ok === true, 'repeated-page fetch ok');
+assert(
+  requestBodies.length === 2,
+  `expected 2 requests (stop on repeated page), got ${requestBodies.length}`,
+);
+
+// Distinct pages keep paginating until a short page.
+let call = 0;
+requestBodies.length = 0;
+globalThis.fetch = async (_url, init) => {
+  requestBodies.push(String(init.body));
+  call += 1;
+  const html = call < 3 ? fakeFragment(`p${call}_`) : '';
+  return { ok: true, status: 200, text: async () => html };
+};
+await fetchMonthViaMisRegistros(2030, 4, { force: true });
+assert(
+  requestBodies.length === 3,
+  `expected 3 requests (2 full pages + empty), got ${requestBodies.length}`,
+);
+assert(
+  new URLSearchParams(requestBodies[1]).get('UltimaRow') === '40',
+  'second page offset = 40',
+);
+
+// Workplace comes from the card text (real MisRegistros markup).
+const card = (day, label) => `
+<div class="bloque " onclick=OpenModal(&#39;k&#39;,0,1,false,&#39;&#39;,true,&#39;/_rhapp/RegistroHorario/FinalizarAux?data=${day}&#39;) role=button>
+  <input type="hidden" id="texto_historial_${day}" value="Tuesday, 03 Of November Normal Day" />
+  <p class="fecha-may pull-left">Tuesday, 03 Of November<span class='ocultar_nombre'> - Normal Day - ${label}</span></p>
+  <i class="fal fa-hourglass-start"></i><span class="tiempo_registro"> 09:00</span>
+  <i class="fal fa-hourglass-end"></i><span class="tiempo_registro"> 18:00</span>
+</div>`;
+const wpExternal = parseMisRegistrosHtml(card('a', 'I work in an external office'), 2026)[0];
+assert(wpExternal.workplace === 'remote', 'external office → remote');
+assert(wpExternal.workplaceText === 'I work in an external office', 'text kept');
+const wpRemoteWork = parseMisRegistrosHtml(card('b', 'Remote work'), 2026)[0];
+assert(wpRemoteWork.workplace === 'office', 'Remote work → office flag');
+const wpUnknown = parseMisRegistrosHtml(card('c', 'Something else'), 2026)[0];
+assert(wpUnknown.workplace === '' && wpUnknown.workplaceText === 'Something else', 'unknown kept as text');
+assert(parseMisRegistrosHtml(sample, 2026)[0].workplace === '', 'no label → unknown');
+const monthWp = buildMonthDaysFromRecords(2026, 11, [wpExternal], new Date('2026-11-10T12:00:00'));
+assert(monthWp.find((d) => d.day === 3).workplace === 'remote', 'workplace reaches month day');
 
 console.log('verify-mis-registros.mjs OK');

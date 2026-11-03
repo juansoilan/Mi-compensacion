@@ -47,6 +47,7 @@ const els = {
   confirmExit: document.getElementById('confirmExit'),
   confirmPause: document.getElementById('confirmPause'),
   batchWarn: document.getElementById('batchWarn'),
+  finalizarNote: document.getElementById('finalizarNote'),
   batchWarnTitle: document.getElementById('batchWarnTitle'),
   batchWarnList: document.getElementById('batchWarnList'),
   timelineTrack: document.getElementById('timelineTrack'),
@@ -56,6 +57,7 @@ const els = {
   chipEntry: document.getElementById('chipEntry'),
   chipExit: document.getElementById('chipExit'),
   chipPause: document.getElementById('chipPause'),
+  workplaceGroup: document.getElementById('workplaceGroup'),
   btnConfirmSend: document.getElementById('btnConfirmSend'),
   btnConfirmCancel: document.getElementById('btnConfirmCancel'),
   batchConfirmDialog: document.getElementById('batchConfirmDialog'),
@@ -77,6 +79,11 @@ const TIMELINE_START = 7 * 60;
 const TIMELINE_END = 21 * 60;
 const TIMELINE_SPAN = TIMELINE_END - TIMELINE_START;
 const SNAP_MINUTES = 15;
+/** Min workdayScore for a frame to count as the Finalizar form. */
+const FINALIZAR_MIN_SCORE = 25;
+const FINALIZAR_HELP =
+  'To submit new days, open “Summary of your workday” ' +
+  '(RegistroHorario/Finalizar) in the portal, then press refresh.';
 const MIN_SEGMENT = 15;
 
 /** @type {null | { kind: string, startX: number, origin: object }} */
@@ -474,6 +481,7 @@ function toggleDaySelection(btn) {
     label: btn.dataset.label || '',
     auxUrl: btn.dataset.auxUrl || '',
   });
+  const wasEmpty = selectedIsos.size === 0;
   if (selectedIsos.has(iso)) {
     selectedIsos.delete(iso);
   } else {
@@ -484,7 +492,9 @@ function toggleDaySelection(btn) {
     preferTodaySelection = false;
   }
   syncSelectionBar();
-  syncConfirmPanel({ scroll: selectedIsos.size > 0 });
+  // Scroll to the confirm card only on the first pick, so building a
+  // multi-day selection does not keep jumping away from the calendar.
+  syncConfirmPanel({ scroll: wasEmpty && selectedIsos.size > 0 });
 }
 
 function clearSelection() {
@@ -586,6 +596,9 @@ function syncConfirmPanel({ scroll = false, forceSchedule = false } = {}) {
 /** Confirm card with no days selected. The card itself stays on screen. */
 function showConfirmIdle() {
   hideBatchWarn();
+  if (els.finalizarNote) {
+    els.finalizarNote.hidden = true;
+  }
   const confirmTitle = els.confirmCard.querySelector('h2');
   if (confirmTitle) {
     confirmTitle.textContent = 'Confirm submission';
@@ -682,6 +695,13 @@ function showConfirmForSelection({
     showBatchWarn(isos, { editCount, coverCount });
   }
 
+  if (els.finalizarNote) {
+    els.finalizarNote.hidden = !(
+      !finalizarReady &&
+      isos.some((iso) => dayMeta.get(iso)?.mode !== 'edit')
+    );
+  }
+
   els.confirmCard.hidden = false;
   syncSubmitEnabled();
   if (scroll) {
@@ -725,6 +745,19 @@ function showBatchWarn(isos, counts) {
     li.textContent = meta?.label
       ? `${iso} · ${meta.label} (${mode})`
       : `${iso} (${mode})`;
+    const sel = document.createElement('select');
+    sel.className = 'day-workplace';
+    sel.setAttribute('aria-label', `Workplace for ${iso}`);
+    for (const [value, text] of [
+      ['', 'As recorded'],
+      ['office', 'Office'],
+      ['remote', 'Out of office'],
+    ]) {
+      sel.add(new Option(text, value));
+    }
+    sel.value = workplaceFor(iso);
+    sel.addEventListener('change', () => dayWorkplace.set(iso, sel.value));
+    li.appendChild(sel);
     els.batchWarnList.appendChild(li);
   }
   els.batchWarn.hidden = false;
@@ -799,9 +832,9 @@ function showBatchConfirmDialog(isos) {
     for (const iso of isos) {
       const li = document.createElement('li');
       const meta = dayMeta.get(iso);
-      li.textContent = meta?.label
-        ? `${iso} · ${meta.label}`
-        : iso;
+      li.textContent =
+        (meta?.label ? `${iso} · ${meta.label}` : iso) +
+        ` · ${workplaceLabel(iso)}`;
       els.batchDialogList.appendChild(li);
     }
   }
@@ -1134,6 +1167,41 @@ function setCellUpdating(iso, isUpdating) {
   }
 }
 
+/** Global workplace choice: '' = as recorded (edit) / office (new). */
+let workplaceDefault = '';
+/** Per-day overrides: iso → 'office' | 'remote' | ''. */
+const dayWorkplace = new Map();
+
+/** @param {string} iso */
+function workplaceFor(iso) {
+  return dayWorkplace.has(iso) ? dayWorkplace.get(iso) : workplaceDefault;
+}
+
+els.workplaceGroup?.addEventListener('change', (event) => {
+  const input = event.target;
+  if (input instanceof HTMLInputElement && input.name === 'workplace') {
+    workplaceDefault = input.value;
+    dayWorkplace.clear();
+    for (const sel of els.batchWarnList?.querySelectorAll('select') || []) {
+      sel.value = workplaceDefault;
+    }
+  }
+});
+
+/**
+ * Label for the workplace that will be sent for a day.
+ * @param {string} iso
+ */
+function workplaceLabel(iso) {
+  const value = workplaceFor(iso);
+  if (value === 'remote') return 'Out of office';
+  if (value === 'office') return 'Office';
+  // Nothing chosen: new days default to office, edits keep the recorded one.
+  return dayMeta.get(iso)?.mode === 'edit'
+    ? 'Workplace as recorded'
+    : 'Office';
+}
+
 async function confirmAndClose() {
   const isos = sortedSelectedIsos();
   if (!isos.length) {
@@ -1144,6 +1212,19 @@ async function confirmAndClose() {
   if (!tab?.id) {
     showToast('danger', 'No portal tab found.');
     return;
+  }
+
+  // New days (cover) need the Finalizar form; fail before sending anything.
+  const needsFinalizar = isos.some(
+    (iso) => dayMeta.get(iso)?.mode !== 'edit',
+  );
+  if (needsFinalizar) {
+    finalizarReady = await detectFinalizarFrame(tab.id);
+    syncConfirmPanel();
+    if (!finalizarReady) {
+      showToast('danger', FINALIZAR_HELP);
+      return;
+    }
   }
 
   const schedule = {
@@ -1185,6 +1266,7 @@ async function confirmAndClose() {
           date: iso,
           mode,
           auxUrl,
+          workplace: workplaceFor(iso),
         });
         if (!result?.ok) {
           throw new Error(result?.error || 'The portal rejected the submission.');
@@ -1369,11 +1451,10 @@ async function sendCloseOnce(tabId, message, frameIds) {
   // Edits via FinalizarAux only need any same-origin portal frame.
   const canEditViaAux =
     Boolean(message.auxUrl) || message.mode === 'edit';
-  if (!target || (!canEditViaAux && target.score < 25)) {
+  if (!target || (!canEditViaAux && target.score < FINALIZAR_MIN_SCORE)) {
     return {
       ok: false,
-      error:
-        'Finalizar (“Summary of your workday”) not found. Open it in the portal and try again.',
+      error: `Finalizar (“Summary of your workday”) not found. ${FINALIZAR_HELP}`,
     };
   }
   return chrome.tabs.sendMessage(tabId, message, {
@@ -1574,6 +1655,9 @@ function renderCalendarView() {
       isSelected ? 'is-selected' : '',
       isUpdating ? 'is-updating' : '',
       anomalous ? 'is-anomaly' : '',
+      !offline && cell.status === DAY_STATUS.recorded && cell.workplace
+        ? `wp-${cell.workplace}`
+        : '',
     ]
       .filter(Boolean)
       .join(' ');
@@ -1841,6 +1925,20 @@ function buildCellTooltipModel(cell, opts) {
     if (cell.effective) {
       rows.push({ icon: 'work', label: 'Work', value: cell.effective });
     }
+    if (cell.workplace || cell.workplaceText) {
+      // The portal calls the office flag "Remote work", so use our own
+      // wording when known and only fall back to the portal text.
+      const known = cell.workplace === 'remote' || cell.workplace === 'office';
+      rows.push({
+        icon: known ? `wp-${cell.workplace}` : 'info',
+        label: 'Workplace',
+        value: known
+          ? cell.workplace === 'remote'
+            ? 'Out of office'
+            : 'Office'
+          : cell.workplaceText,
+      });
+    }
     const breakValue = formatBreakValue(cell);
     if (breakValue) {
       rows.push({
@@ -2021,7 +2119,7 @@ async function detectFinalizarFrame(tabId) {
       if (
         ping?.ok &&
         (/RegistroHorario\/Finalizar/i.test(ping.href || '') ||
-          (ping.workdayScore || 0) >= 100)
+          (ping.workdayScore || 0) >= FINALIZAR_MIN_SCORE)
       ) {
         return true;
       }

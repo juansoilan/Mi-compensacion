@@ -119,8 +119,12 @@ updated folder.
    (complete SSO as usual).
 2. Open the extension side panel.
 3. Refresh the month view.
-4. Select the day(s) you want to close or edit.
-5. Confirm the schedule (entry / exit / pause) and submit.
+4. To record days that have no record yet, open **Summary of your workday**
+   (Finalizar, `RegistroHorario/Finalizar`) in the portal and keep that tab
+   open, then press Refresh. Editing days that are already recorded does not
+   need it.
+5. Select the day(s) you want to close or edit.
+6. Confirm the schedule (entry / exit / pause) and submit.
 
 The extension talks to the portal from your browser using your existing session
 cookies. The last successful schedule becomes the default for the next run.
@@ -145,6 +149,18 @@ cookies. The last successful schedule becomes the default for the next run.
 - Do not rely on a tab that only shows `saml.micompensacion.com` after a failed
   or incomplete login — complete SSO until the portal UI is visible.
 - If you closed every portal tab, open the portal again and click Refresh.
+
+### "Finalizar (Summary of your workday) not found"
+
+Creating a day that has no record yet needs the anti-forgery token and person
+id from the portal's **Summary of your workday** page, so that page must be
+open.
+
+- In the portal, open **Summary of your workday** (`RegistroHorario/Finalizar`).
+- Keep that tab open in the same browser profile and window as the side panel.
+- Press **Refresh** in the panel, then submit again.
+- Days that are already recorded are edited through their own record and work
+  from any portal page.
 
 ### Session expired
 

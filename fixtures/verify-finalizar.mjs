@@ -78,3 +78,15 @@ assert(legacy.get('TiempoPausa') === '3600', 'legacy pause');
 
 console.log('verify-finalizar.mjs OK');
 console.log('  body keys:', [...body.keys()].join(', '));
+
+// Workplace: office is default; remote flips the two portal checkboxes.
+assert(body.get('InformaTeletrabajo') === 'True', 'office default teletrabajo');
+assert(body.get('InformaOficina') === 'False', 'office default oficina');
+const remoteBody = buildFinalizarBody(
+  schedule,
+  { token: 't', rhPersonaIdEncrypted: 'p', tipoDiaId: '389', workplace: 'remote' },
+  new Date('2026-11-03T12:00:00'),
+);
+assert(remoteBody.get('InformaTeletrabajo') === 'False', 'remote teletrabajo');
+assert(remoteBody.get('InformaOficina') === 'True', 'remote oficina');
+console.log('workplace OK');
